@@ -32,7 +32,9 @@ pts_LakeOH_ALBERS <- st_transform(pts_LakeOH, 5070)
 #
 #
 #---
-# computationally demanding - only run when editing the saved files
+# ONLY EDIT/RUN IF INTENDING TO EDIT THE RESULTING FILES
+# PLEASE DISCUSS BEFORE DOING SO
+# computationally demanding 
 if(FALSE){
 
 table(is.na(USCAN_albers$BLD_YR))
@@ -66,7 +68,8 @@ BLD_ALBERS_cropped <- st_read("gis_data/buffered_invasion/BLD_ALBERS_cropped.shp
 #
 #
 #---
-# only edit if intending to edit the saved files
+# ONLY EDIT/RUN IF INTENDING TO EDIT THE RESULTING FILES
+# PLEASE DISCUSS BEFORE DOING SO
 if(FALSE){
 invaded_counties_all <- USCAN_albers %>%
   dplyr::filter(!is.na(BLD_YR))
@@ -180,7 +183,8 @@ st_write(BLD_sprd_ALBERS, "gis_data/adjacent_isolated/BLD_sprd_ALBERS.shp", dele
 #---
 # mainly used for making pretty maps
 # this chunk loads in, combines, and save the files
-# only edit if intending to edit the saved files
+# ONLY EDIT/RUN IF INTENDING TO EDIT THE RESULTING FILES
+# PLEASE DISCUSS BEFORE DOING SO
 if(FALSE){
 # https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html
 states = st_read("gis_data/US_shapefiles/states/cb_2018_us_state_20m.shp")
