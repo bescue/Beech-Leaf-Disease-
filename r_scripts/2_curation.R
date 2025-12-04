@@ -207,7 +207,7 @@ st_write(USCAN_albers_export, "gis_data/invasion_data_USCAN/USCAN_albers.shp", d
 #
 # this file must be downloaded or requested from Sam - too large for storage on GitHub
 # https://data.fs.usda.gov/geodata/rastergateway/bigmap/index.php
-beech_rast <- terra::rast('gis_data/raw_beech_raster/Hosted_AGB_0531_2018_AMERICAN_BEECH_06052023045637.tif')
+beech_rast <- terra::rast('raw_beech_raster/Hosted_AGB_0531_2018_AMERICAN_BEECH_06052023045637.tif')
 
 mean_na_rm <- function(data_vector) {
   # Calculate the mean while removing NA values
