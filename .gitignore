@@ -1,3 +1,7 @@
+# Large beech raster
+/raw_beech_raster
+/gis_data
+
 # History files
 .Rhistory
 .Rapp.history
