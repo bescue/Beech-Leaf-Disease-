@@ -2,6 +2,9 @@
 # This script is used for calculating spread rates of beech leaf disease using
 # three different approaches: effective range radius, distance regression, and
 # boundary displacement
+#
+# IMPORTANT!!! Downloading the GIS data from Sam (directory gis_data) and storing
+# it in the same directory as the other folders is necessary for this code to run
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 
 
