@@ -39,27 +39,27 @@ pts_LakeOH_ALBERS <- st_transform(pts_LakeOH, 5070)
 # PLEASE DISCUSS BEFORE DOING SO
 # computationally demanding 
 if(FALSE){
-
-table(is.na(USCAN_albers$BLD_YR))
-
-BLD_invaded_areas <- USCAN_albers[which(!is.na(USCAN_albers$BLD_YR)),]
-# create a buffered polygon (invaded area + 500 km)
-counties_buff_500km <- st_buffer(BLD_invaded_areas, 500*1000)%>%  # 500 km
-   st_union() %>% # unite to a geometry object
-   st_sf() # make the geometry a data frame object
-# select counties within buffered area
-counties_within_buffer_pts <- st_intersection(st_centroid(USCAN_albers), counties_buff_500km)
-counties_within_buffer <- USCAN_albers[which(USCAN_albers$FIPS %in% counties_within_buffer_pts$FIPS),]
-nrow(counties_within_buffer)
- 
-# crop shapefile by invaded counties (later used for plotting)
-BLD_ALBERS_cropped <- st_crop(USCAN_albers, BLD_invaded_areas)
-
-# save shapefiles
-#plot(st_geometry(counties_within_buffer))
-st_write(counties_within_buffer, "gis_data/buffered_invasion/buffered_invasion.shp", delete_layer = TRUE) 
-st_write(BLD_ALBERS_cropped, "gis_data/buffered_invasion/BLD_ALBERS_cropped.shp", delete_layer = TRUE) 
-beep(1)
+  
+  table(is.na(USCAN_albers$BLD_YR))
+  
+  BLD_invaded_areas <- USCAN_albers[which(!is.na(USCAN_albers$BLD_YR)),]
+  # create a buffered polygon (invaded area + 500 km)
+  counties_buff_500km <- st_buffer(BLD_invaded_areas, 500*1000)%>%  # 500 km
+    st_union() %>% # unite to a geometry object
+    st_sf() # make the geometry a data frame object
+  # select counties within buffered area
+  counties_within_buffer_pts <- st_intersection(st_centroid(USCAN_albers), counties_buff_500km)
+  counties_within_buffer <- USCAN_albers[which(USCAN_albers$FIPS %in% counties_within_buffer_pts$FIPS),]
+  nrow(counties_within_buffer)
+  
+  # crop shapefile by invaded counties (later used for plotting)
+  BLD_ALBERS_cropped <- st_crop(USCAN_albers, BLD_invaded_areas)
+  
+  # save shapefiles
+  #plot(st_geometry(counties_within_buffer))
+  st_write(counties_within_buffer, "gis_data/buffered_invasion/buffered_invasion.shp", delete_layer = TRUE) 
+  st_write(BLD_ALBERS_cropped, "gis_data/buffered_invasion/BLD_ALBERS_cropped.shp", delete_layer = TRUE) 
+  beep(1)
 }
 # load in the buffered and cropped shapefiles (mostly used for plotting)
 counties_within_buffer <- st_read("gis_data/buffered_invasion/buffered_invasion.shp")
@@ -74,101 +74,101 @@ BLD_ALBERS_cropped <- st_read("gis_data/buffered_invasion/BLD_ALBERS_cropped.shp
 # ONLY EDIT/RUN IF INTENDING TO EDIT THE RESULTING FILES
 # PLEASE DISCUSS BEFORE DOING SO
 if(FALSE){
-invaded_counties_all <- USCAN_albers %>%
-  dplyr::filter(!is.na(BLD_YR))
-nrow(invaded_counties_all)
-
-# create spatial neighborhood for getting neighbors of each county
-# second order (queens case neighborhood)
-sec_order <- poly2nb(invaded_counties_all, queen = T, row.names=invaded_counties_all$FIPS)
-sec_order[[1]]
-
-## For loop --------------------------------------------------
-# for loop determining distances between counties and whether
-# a county was isolated from or adjacent to invaded area 
-# should start in second year of invasion records, since 
-# counties invaded in the first year would
-# be definition be isolated
-# i <- 2013
-for(i in 2013:2024){
+  invaded_counties_all <- USCAN_albers %>%
+    dplyr::filter(!is.na(BLD_YR))
+  nrow(invaded_counties_all)
   
-  # current invaded counties in time i
-  invaded_in_i <- invaded_counties_all[which(invaded_counties_all$BLD_YR %in% i),]
+  # create spatial neighborhood for getting neighbors of each county
+  # second order (queens case neighborhood)
+  sec_order <- poly2nb(invaded_counties_all, queen = T, row.names=invaded_counties_all$FIPS)
+  sec_order[[1]]
   
-  # all counties invaded across previous years
-  prev_invaded_counties <- invaded_counties_all[which(invaded_counties_all$BLD_YR %in% (2012:(i-1))),]
-  
-  
-  if(nrow(invaded_in_i) > 0){ # if there counties invaded in year i, proceed into loop
-    for(j in 1:nrow(invaded_in_i)){ # for each invaded county, loop through
-      #j <- 1
+  ## For loop --------------------------------------------------
+  # for loop determining distances between counties and whether
+  # a county was isolated from or adjacent to invaded area 
+  # should start in second year of invasion records, since 
+  # counties invaded in the first year would
+  # be definition be isolated
+  # i <- 2013
+  for(i in 2013:2024){
+    
+    # current invaded counties in time i
+    invaded_in_i <- invaded_counties_all[which(invaded_counties_all$BLD_YR %in% i),]
+    
+    # all counties invaded across previous years
+    prev_invaded_counties <- invaded_counties_all[which(invaded_counties_all$BLD_YR %in% (2012:(i-1))),]
+    
+    
+    if(nrow(invaded_in_i) > 0){ # if there counties invaded in year i, proceed into loop
+      for(j in 1:nrow(invaded_in_i)){ # for each invaded county, loop through
+        #j <- 1
+        
+        # get current county and all previously invaded points
+        new_invaded_point <- invaded_in_i[j,"FIPS"]
+        if(i == 2013){ # if second year of invasion, assume discovery location is nearest previously invaded location
+          prev_invaded_points <- pts_LakeOH_ALBERS
+        }else{ # otherwise, get all previous invaded counties
+          prev_invaded_points <-  prev_invaded_counties
+        }
+        
+        # get distance between current county and discovery location
+        pts_discovery_location <- suppressWarnings(pointDistance(st_centroid(new_invaded_point),st_centroid(pts_LakeOH_ALBERS),lonlat=F))
+        # get minimum distance to discovery location (DL = discovery location)
+        invaded_in_i$DtoDL_km[j] <- min(pts_discovery_location)[1]/1000 # convert to km
+        
+        # find minimum distance to previous year's invasion boundary
+        dist_vec_centroids <- suppressWarnings(pointDistance(st_centroid(new_invaded_point),st_centroid(prev_invaded_points),lonlat=F))
+        invaded_in_i$D_BDY_km[j] <- min(dist_vec_centroids)[1]/1000
+        
+        # get closest invaded county to county j
+        val <- which(dist_vec_centroids == min(dist_vec_centroids)[1], arr.ind = TRUE) # if tied, take first observation in the tie
+        closest_county_BNDRY <-  prev_invaded_counties[val,]
+        invaded_in_i$NR_CNTY[j] <- as.character(closest_county_BNDRY$FIPS)
+        
+        # determine whether a neighbor was invaded
+        loc_in_vec <- which(invaded_counties_all$FIPS %in% invaded_in_i[j, "FIPS"]) # where is the current county located in data frame
+        neighbs <- invaded_counties_all[sec_order[[loc_in_vec]],] # get current county's neighbors
+        # determine if current county had neighbors in the previous year that were infested
+        neighbs_prev <- prev_invaded_counties[which(prev_invaded_counties$FIPS %in% neighbs$FIPS),]
+        # make neighbor assignment
+        if(nrow(neighbs_prev) == 0){invaded_in_i$STAT[j] <- "iso"} else{ # if county j had previously invaded neighbors, assign iso
+          invaded_in_i$STAT[j] <- "adj" # otherwise assign adj
+        }}
       
-      # get current county and all previously invaded points
-      new_invaded_point <- invaded_in_i[j,"FIPS"]
-      if(i == 2013){ # if second year of invasion, assume discovery location is nearest previously invaded location
-        prev_invaded_points <- pts_LakeOH_ALBERS
-      }else{ # otherwise, get all previous invaded counties
-        prev_invaded_points <-  prev_invaded_counties
+      # specifying variables to extract and export from invaded_in_i dataframe
+      vec_variables <- c("FIPS", "D_BDY_km", "DtoDL_km", "STAT", "BLD_YR", "NR_CNTY")
+      
+      if(i == 2013){ # if in first iteration of the loop, extract the columns the dataframe
+        invaded_counties <- as.data.frame(invaded_in_i[, paste(vec_variables)])
+      } else { # otherwise, append the dataframe
+        invaded_counties <- rbind.data.frame(invaded_counties,as.data.frame(invaded_in_i[, paste(vec_variables)]))
       }
-      
-      # get distance between current county and discovery location
-      pts_discovery_location <- suppressWarnings(pointDistance(st_centroid(new_invaded_point),st_centroid(pts_LakeOH_ALBERS),lonlat=F))
-      # get minimum distance to discovery location (DL = discovery location)
-      invaded_in_i$DtoDL_km[j] <- min(pts_discovery_location)[1]/1000 # convert to km
-      
-      # find minimum distance to previous year's invasion boundary
-      dist_vec_centroids <- suppressWarnings(pointDistance(st_centroid(new_invaded_point),st_centroid(prev_invaded_points),lonlat=F))
-      invaded_in_i$D_BDY_km[j] <- min(dist_vec_centroids)[1]/1000
-      
-      # get closest invaded county to county j
-      val <- which(dist_vec_centroids == min(dist_vec_centroids)[1], arr.ind = TRUE) # if tied, take first observation in the tie
-      closest_county_BNDRY <-  prev_invaded_counties[val,]
-      invaded_in_i$NR_CNTY[j] <- as.character(closest_county_BNDRY$FIPS)
-      
-      # determine whether a neighbor was invaded
-      loc_in_vec <- which(invaded_counties_all$FIPS %in% invaded_in_i[j, "FIPS"]) # where is the current county located in data frame
-      neighbs <- invaded_counties_all[sec_order[[loc_in_vec]],] # get current county's neighbors
-      # determine if current county had neighbors in the previous year that were infested
-      neighbs_prev <- prev_invaded_counties[which(prev_invaded_counties$FIPS %in% neighbs$FIPS),]
-      # make neighbor assignment
-      if(nrow(neighbs_prev) == 0){invaded_in_i$STAT[j] <- "iso"} else{ # if county j had previously invaded neighbors, assign iso
-        invaded_in_i$STAT[j] <- "adj" # otherwise assign adj
-      }}
+    }
     
-    # specifying variables to extract and export from invaded_in_i dataframe
-    vec_variables <- c("FIPS", "D_BDY_km", "DtoDL_km", "STAT", "BLD_YR", "NR_CNTY")
-    
-    if(i == 2013){ # if in first iteration of the loop, extract the columns the dataframe
-      invaded_counties <- as.data.frame(invaded_in_i[, paste(vec_variables)])
-    } else { # otherwise, append the dataframe
-      invaded_counties <- rbind.data.frame(invaded_counties,as.data.frame(invaded_in_i[, paste(vec_variables)]))
+    cat("Year", i,"out of", 2024,"\n") 
+  }
+  
+  
+  # Add data into shapefile --------------------------------------------------
+  # create new shapefile
+  BLD_sprd_ALBERS <- USCAN_albers
+  # add empty columns, populate with NA
+  BLD_sprd_ALBERS$STAT <- NA
+  BLD_sprd_ALBERS$D_BDY_km <- NA
+  BLD_sprd_ALBERS$DtoDL_km <- NA
+  BLD_sprd_ALBERS$NR_CNTY <- NA
+  
+  # for loop extract data from invaded counties data frame
+  for(i in 1:nrow(BLD_sprd_ALBERS)){
+    curr_fips <- BLD_sprd_ALBERS$FIPS[i]
+    if( length(which(invaded_counties$FIPS %in% curr_fips)) > 0 ){
+      BLD_sprd_ALBERS$STAT[i] <- invaded_counties[which(invaded_counties$FIPS %in% curr_fips), "STAT"]
+      BLD_sprd_ALBERS$D_BDY_km[i] <- invaded_counties[which(invaded_counties$FIPS %in% curr_fips), "D_BDY_km"]
+      BLD_sprd_ALBERS$DtoDL_km[i] <- invaded_counties[which(invaded_counties$FIPS %in% curr_fips), "DtoDL_km"]
+      BLD_sprd_ALBERS$NR_CNTY[i] <- invaded_counties[which(invaded_counties$FIPS %in% curr_fips), "NR_CNTY"]
     }
   }
-  
-  cat("Year", i,"out of", 2024,"\n") 
-}
-
-
-# Add data into shapefile --------------------------------------------------
-# create new shapefile
-BLD_sprd_ALBERS <- USCAN_albers
-# add empty columns, populate with NA
-BLD_sprd_ALBERS$STAT <- NA
-BLD_sprd_ALBERS$D_BDY_km <- NA
-BLD_sprd_ALBERS$DtoDL_km <- NA
-BLD_sprd_ALBERS$NR_CNTY <- NA
-
-# for loop extract data from invaded counties data frame
-for(i in 1:nrow(BLD_sprd_ALBERS)){
-  curr_fips <- BLD_sprd_ALBERS$FIPS[i]
-  if( length(which(invaded_counties$FIPS %in% curr_fips)) > 0 ){
-    BLD_sprd_ALBERS$STAT[i] <- invaded_counties[which(invaded_counties$FIPS %in% curr_fips), "STAT"]
-    BLD_sprd_ALBERS$D_BDY_km[i] <- invaded_counties[which(invaded_counties$FIPS %in% curr_fips), "D_BDY_km"]
-    BLD_sprd_ALBERS$DtoDL_km[i] <- invaded_counties[which(invaded_counties$FIPS %in% curr_fips), "DtoDL_km"]
-    BLD_sprd_ALBERS$NR_CNTY[i] <- invaded_counties[which(invaded_counties$FIPS %in% curr_fips), "NR_CNTY"]
-  }
-}
-st_write(BLD_sprd_ALBERS, "gis_data/adjacent_isolated/BLD_sprd_ALBERS.shp", delete_layer=T)
+  st_write(BLD_sprd_ALBERS, "gis_data/adjacent_isolated/BLD_sprd_ALBERS.shp", delete_layer=T)
 }
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 
@@ -189,29 +189,29 @@ st_write(BLD_sprd_ALBERS, "gis_data/adjacent_isolated/BLD_sprd_ALBERS.shp", dele
 # ONLY EDIT/RUN IF INTENDING TO EDIT THE RESULTING FILES
 # PLEASE DISCUSS BEFORE DOING SO
 if(FALSE){
-# https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html
-states = st_read("gis_data/US_shapefiles/states/cb_2018_us_state_20m.shp")
-states_albers <- st_transform(states, st_crs(BLD_ALBERS_cropped))
-states_albers <- states_albers %>% dplyr::filter(NAME %!in% c("Puerto Rico", "Hawaii")) %>% 
-                                   dplyr::select(FIPPR = STATEFP,
-                                          GEOID = AFFGEOID,
-                                          NAME = NAME)
-#
-# https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/index2021-eng.cfm?year=21
-provinces = st_read("gis_data/CAN_shapefiles/provinces/lpr_000b21a_e.shp")
-provinces_albers <- st_transform(provinces, st_crs(BLD_ALBERS_cropped))
-provinces_albers <- provinces_albers %>%  dplyr::select(FIPPR = PRUID,
-                                                        GEOID = DGUID,
-                                                        NAME = PRENAME)
-
-
-states_provinces_albers <- bind_rows(states_albers, provinces_albers)
-#plot(st_geometry(states_provinces_albers))
-# shapefile cropped to invaded areas
-states_provinces_albers_crop <- st_crop(states_provinces_albers, BLD_invaded_areas)
-#plot(st_geometry(states_provinces_albers_crop))
-st_write(states_provinces_albers, "gis_data/USCAN_combined/states_provinces_albers.shp", delete_layer=T)
-st_write(states_provinces_albers_crop, "gis_data/USCAN_combined/states_provinces_albers_crop.shp", delete_layer=T)
+  # https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html
+  states = st_read("gis_data/US_shapefiles/states/cb_2018_us_state_20m.shp")
+  states_albers <- st_transform(states, st_crs(BLD_ALBERS_cropped))
+  states_albers <- states_albers %>% dplyr::filter(NAME %!in% c("Puerto Rico", "Hawaii")) %>% 
+    dplyr::select(FIPPR = STATEFP,
+                  GEOID = AFFGEOID,
+                  NAME = NAME)
+  #
+  # https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/index2021-eng.cfm?year=21
+  provinces = st_read("gis_data/CAN_shapefiles/provinces/lpr_000b21a_e.shp")
+  provinces_albers <- st_transform(provinces, st_crs(BLD_ALBERS_cropped))
+  provinces_albers <- provinces_albers %>%  dplyr::select(FIPPR = PRUID,
+                                                          GEOID = DGUID,
+                                                          NAME = PRENAME)
+  
+  
+  states_provinces_albers <- bind_rows(states_albers, provinces_albers)
+  #plot(st_geometry(states_provinces_albers))
+  # shapefile cropped to invaded areas
+  states_provinces_albers_crop <- st_crop(states_provinces_albers, BLD_invaded_areas)
+  #plot(st_geometry(states_provinces_albers_crop))
+  st_write(states_provinces_albers, "gis_data/USCAN_combined/states_provinces_albers.shp", delete_layer=T)
+  st_write(states_provinces_albers_crop, "gis_data/USCAN_combined/states_provinces_albers_crop.shp", delete_layer=T)
 }
 states_provinces_albers = st_read("gis_data/USCAN_combined/states_provinces_albers.shp")
 states_provinces_albers_crop = st_read("gis_data/USCAN_combined/states_provinces_albers_crop.shp")
@@ -242,9 +242,9 @@ invaded_area_continuous <- ggplot() +
   geom_sf(data = BLD_ALBERS_cropped, aes(fill = BLD_YR), color="light gray") + #polygons filled based on the density value
   theme_bw()+theme_void()+
   geom_sf(data=states_provinces_albers_crop, fill="transparent", color="black", lwd=1)+
-  scale_fill_gradientn(colors = my_BLD_colors_spec, name="", na.value = "white",   guide = guide_colorbar(frame.colour = "black", ticks.colour = "black"))+
-  theme(legend.position.inside =c(0.6,0.35),legend.key.size = unit(0.5, 'cm'),
-        legend.text = element_text(size=8), legend.justification = "left")+
+  scale_fill_gradientn(colors = my_BLD_colors_spec, name="", na.value = "white", labels = function(x) as.integer(x), guide = guide_colorbar(frame.colour = "black", ticks.colour = "black"))+
+  theme(legend.position.inside =c(0.6,0.35),legend.key.size = unit(0.6, 'cm'),
+        legend.text = element_text(size=10), legend.justification = "left")+
   geom_sf(data=pts_LakeOH_ALBERS, color = "black", size = 5)+
   # this text labels the point added by the preceding line (= first detection location)
   # ggrepel::geom_text_repel(
@@ -261,7 +261,7 @@ invaded_area_continuous <- ggplot() +
 resize.win(6.85,5)
 gg_inset_map1_cont = ggdraw() +
   draw_plot(invaded_area_continuous) +
-  draw_plot(inset, x = 0.65, y = 0.06, width = 0.25, height = 0.25)
+  draw_plot(inset, x = 0.55, y = 0.06, width = 0.35, height = 0.35)
 gg_inset_map1_cont
 
 
@@ -353,8 +353,8 @@ inv.isoadj_map <- ggplot() +
   geom_sf(data=states_provinces_albers_crop, fill="transparent", color="black", lwd=1)+
   scale_fill_manual(values= c(adj_col,iso_col),
                     name="", na.translate=FALSE)+
-  theme(legend.key.size = unit(0.4, 'cm'), legend.text = element_text(size=8), legend.justification = "left",
-        legend.position=c(0.3,0.25))
+  theme(legend.key.size = unit(0.8, 'cm'), legend.text = element_text(size=12), legend.justification = "left",
+        legend.position=c(0.9,0.5))
 
 
 
@@ -393,19 +393,20 @@ round(median(iso_only$D_BDY_km),0)
 iso_only[order(iso_only$D_BDY_km, decreasing = T),]
 quantile(iso_only$D_BDY_km, 0.99)
 
+green <- rev(viridis(6))[2]
 inv.isoadj_hist <-
   ggplot(iso_only, aes(x=D_BDY_km)) +
-  geom_histogram(position="identity", col="black", fill=iso_col, boundary=0, bins=60)+
+  geom_histogram(position="identity", col="black", fill= green, boundary=0, bins=60)+
   #geom_vline(data=mu, aes(xintercept=grp.mean, color=sex),
   #           linetype="dashed")+
   labs(title="",x="Distance jumped (km)", y = "Count")+
   theme_bw()+
-  scale_x_continuous(expand = c(0, 0), limits= c(0,600))+ # x axis is getting cut-off
+  scale_x_continuous(expand = c(0, 0), limits= c(0,500))+ # x axis is getting cut-off
   scale_y_continuous(expand = c(0, 0), limits= c(0,15))+ # x axis is getting cut-off
   theme(panel.border = element_blank(),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),  plot.margin = margin(10, 10, 10, 10))+
-  geom_text(x = 200, y = 10, label = "Mean ± SE = 113 ± 11 km", parse = F, size=3,check_overlap = TRUE,  hjust = 0)+
-  geom_text(x = 200, y = 8, label = "Median = 82 km", parse = F, size=3,check_overlap = TRUE,  hjust = 0)
+  geom_text(x = 200, y = 10, label = "Mean ± SE = 113 ± 11 km", parse = F, size=5,check_overlap = TRUE,  hjust = 0)+
+  geom_text(x = 200, y = 9, label = "Median = 82 km", parse = F, size=5,check_overlap = TRUE,  hjust = 0)
 
 resize.win(3.30709,7)
 
@@ -413,13 +414,68 @@ resize.win(3.30709,7)
 inv.isoadj_map / inv.isoadj_graph / inv.isoadj_hist # Places plots side-by-side
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 
+# Calculate top of stacked bars per year
+total_per_year <- isoadj_cty %>%
+  group_by(BLD_YR) %>%
+  summarize(total = sum(counties_invaded))
+
+# Plot
+inv.isoadj_bar <- ggplot(isoadj_cty, aes(x = factor(BLD_YR), y = counties_invaded, fill = STAT)) +
+  geom_bar(stat = "identity", position = "stack", color = "black") +
+  
+  geom_text(data = total_per_year,
+            aes(x = factor(BLD_YR), y = total + 2.0, label = total),
+            inherit.aes = FALSE, size = 4) +
+  
+  scale_fill_manual(
+    values = c("adj" = adj_col, "iso" = iso_col),
+    labels = c("Adjacent", "Isolated"),
+    name = ""
+  ) +
+  
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  labs(x = "Year", y = "Counties invaded") +
+  
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 12),
+        legend.position = "top",
+        legend.text = element_text(size = 12))
+
+inv.isoadj_bar
 
 
+# Make equal size panels 
+panel_theme <- theme_bw() +
+  theme(
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 12),
+    legend.key.size = unit(0.4, "cm"),
+    legend.text = element_text(size = 10),
+    plot.margin = margin(5, 5, 5, 5)
+  )
 
+gg_inset_map1_cont <- gg_inset_map1_cont +
+  coord_sf(expand = FALSE) + 
+  panel_theme +
+  theme(aspect.ratio = 1.0)  
 
+inv.isoadj_map_cropped <- inv.isoadj_map +
+  coord_sf(expand = FALSE) + 
+  panel_theme +
+  theme(aspect.ratio = 1.0)
 
+inv.isoadj_hist <- inv.isoadj_hist + panel_theme
+inv.isoadj_bar <- inv.isoadj_bar + panel_theme
 
+final_panel <- (gg_inset_map1_cont + inv.isoadj_map_cropped) / 
+               (inv.isoadj_hist + inv.isoadj_bar) +
+  plot_annotation(tag_levels = 'A') & 
+  theme(plot.tag = element_text(size = 14, face = "bold"))
 
+resize.win(15, 15)
+final_panel
 
 # Effective range radius -------------------------------------------------------
 #
@@ -758,19 +814,19 @@ summary(sprd.rads.BLD.g)
 
 
 #https://www.r-graph-gallery.com/136-stacked-area-chart
-  # ggplot(sprd.rads.BLD, aes(x = bearing, y = sprd_increment, fill=factor(year))) +
-  # geom_area(stat="identity") +
-  # theme_bw()+
-  # xlab("Bearing")+
-  # ylab("Spread distance (km)")+ 
-  # scale_x_continuous(breaks = seq(0, 360, 22.5*2), limits = c(0,360), expand=c(0,0))+
-  # scale_y_continuous(breaks = seq(0, 1200, 300), limits = c(0,1200), expand=c(0,0))+
-  # theme_bw() +
-  # coord_cartesian(clip="off")+
-  # scale_fill_manual(values=my_BLD_colors, name="")+
-  # theme(legend.key.size = unit(0.3, 'cm'), legend.text = element_text(size=7), legend.justification = "left")+
-  # theme(panel.border = element_blank(),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-  #       panel.background = element_blank(), axis.line = element_line(colour = "black"))
+# ggplot(sprd.rads.BLD, aes(x = bearing, y = sprd_increment, fill=factor(year))) +
+# geom_area(stat="identity") +
+# theme_bw()+
+# xlab("Bearing")+
+# ylab("Spread distance (km)")+ 
+# scale_x_continuous(breaks = seq(0, 360, 22.5*2), limits = c(0,360), expand=c(0,0))+
+# scale_y_continuous(breaks = seq(0, 1200, 300), limits = c(0,1200), expand=c(0,0))+
+# theme_bw() +
+# coord_cartesian(clip="off")+
+# scale_fill_manual(values=my_BLD_colors, name="")+
+# theme(legend.key.size = unit(0.3, 'cm'), legend.text = element_text(size=7), legend.justification = "left")+
+# theme(panel.border = element_blank(),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+#       panel.background = element_blank(), axis.line = element_line(colour = "black"))
 
 
 col_bearings <- ggplot(sprd.rads.BLD, aes(x = bearing, y = sprd_increment, fill=factor(year))) +
@@ -793,22 +849,22 @@ wedges_4 = st_wedges(discx,discy,(wedge_length+400)*1000,12)
 st_crs(wedges_4) <- crs(contigUSCAN_ALBERS_BLD)
 #
 sequence_labels_circle <- seq(0,337.5,22.5*2) # needs to reflect numer of wedges
-label_x <- (wedge_length+300)*1000*sin((pi*sequence_labels_circle)/180)+discx
-label_y <- (wedge_length+300)*1000*cos((pi*sequence_labels_circle)/180)+discy
+label_x <- (wedge_length+275)*1000*sin((pi*sequence_labels_circle)/180)+discx
+label_y <- (wedge_length+275)*1000*cos((pi*sequence_labels_circle)/180)+discy
 
 inset_circle <- ggplot() +
   geom_sf(data = wedges_4, fill="transparent", col="transparent") + # polygons filled based on the density value
   geom_sf(data = BLD_ALBERS_cropped, aes(fill = BLD_YR), color="light gray") + #polygons filled based on the density value
   theme_bw()+theme_void()+
-  geom_sf(data=states_provinces_albers_crop, fill="transparent", color="black", lwd=1)+
+  geom_sf(data=states_provinces_albers_crop, fill="transparent", color="black", lwd=1.0)+
   scale_fill_gradientn(colors = my_BLD_colors_spec, name="", na.value = "white",   guide = "none")+
-  theme(legend.position="none",legend.key.size = unit(0.5, 'cm'),
-        legend.text = element_text(size=8), legend.justification = "left")+
+  theme(legend.position="none",legend.key.size = unit(0.8, 'cm'),
+        legend.text = element_text(size=7), legend.justification = "left")+
   geom_sf(data=pts_LakeOH_ALBERS, color = "black", size = 3)+
   #geom_sf(data = wedges, fill="transparent", col="light gray") + # polygons filled based on the density value
   theme_bw()+theme_void()+
-  geom_sf(data =wedges_16, fill="transparent", col="black", size=0.5)+# polygons filled based on the density value
-  annotate("text", label=sequence_labels_circle, x=label_x, y=label_y, size=3)
+  geom_sf(data =wedges_16, fill="transparent", col="black", size=0.9)+# polygons filled based on the density value
+  annotate("text", label=sequence_labels_circle, x=label_x, y=label_y, size=4.5)
 
 resize.win(6.85,4)
 gg_inset_bearings = ggdraw() +
@@ -840,23 +896,23 @@ bearing_histogram <-
   labs(x = "", y = "", title = "") +
   theme_bw()+ 
   theme(panel.grid.minor = element_blank(),
-                    #panel.grid.major.x = element_blank(),
-                    panel.background = element_blank(),
-                    panel.grid.major.x = element_line(colour="black", linetype="dashed"),
-                    panel.grid.major.y = element_blank(), panel.border = element_blank(),
-                    axis.ticks.y = element_blank(),
-                    axis.text.y = element_blank(),
-                    axis.text=element_text(size=8),
-                    axis.title=element_text(size=12),
-                    plot.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "mm"))+
-  annotate("text", x=359, y=seq(20,120,20)+8, label= seq(20,120,20), size=3, hjust=1, vjust=1, fontface = 2)
+        #panel.grid.major.x = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(colour="black", linetype="dashed"),
+        panel.grid.major.y = element_blank(), panel.border = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.text=element_text(size=8),
+        axis.title=element_text(size=12),
+        plot.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "mm"))+
+  annotate("text", x=359, y=seq(20,120,20)+8, label= seq(20,120,20), size=4, hjust=1, vjust=1, fontface = 2)
 
 # NOTE THAT spread distances jump further here (with BD method) because you are
 # just measuring jumps along radii, and not jumps from nearest county
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 
-  
-  
+
+
 
 
 # Invaded area and US map with wedges --------------------------------------------
@@ -869,7 +925,7 @@ invaded_area_discrete <- ggplot() +
   theme_bw()+theme_void()+
   geom_sf(data=states_provinces_albers, fill="transparent", color="black", lwd=1)+
   scale_fill_viridis(
-                    name="", na.value = "white", guide = guide_colorbar(frame.colour = "black", ticks.colour = "black", direction = "horizontal"))+
+    name="", na.value = "white", guide = guide_colorbar(frame.colour = "black", ticks.colour = "black", direction = "horizontal"))+
   theme(legend.position=c(0.49,0.25),legend.key.height =  unit(0.2, 'cm'),
         legend.text = element_text(size=7), legend.justification = "left")+
   geom_sf(data=pts_LakeOH_ALBERS, color = "yellow", fill="black", size = 3, shape=21)+
@@ -912,8 +968,31 @@ wedges_p
 resize.win(6.85,8)
 invaded_area_discrete / wedges_p
 #'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-#'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+
+# Final Panel
+fig_ERR_SEGMENT_fixed <- fig_ERR_SEGMENT +
+  coord_sf(expand = FALSE) + 
+  theme(aspect.ratio = 1)
+
+fig_DR_fixed <- fig_DR +
+  coord_sf(expand = FALSE) +
+  theme(aspect.ratio = 1)
+
+
+gg_inset_bearings_fixed <- gg_inset_bearings + theme(aspect.ratio = 1)
+bearing_histogram_fixed <- bearing_histogram + theme(aspect.ratio = 1)
+
+
+final_panel <- (fig_ERR_SEGMENT_fixed | fig_DR_fixed) / 
+  (gg_inset_bearings_fixed | bearing_histogram_fixed) +
+  plot_layout(widths = c(1,1), heights = c(1,1), guides = "collect") +
+  plot_annotation(tag_levels = "A") & 
+  theme(plot.tag = element_text(size = 14, face = "bold"))
+
+# Display
+resize.win(10, 10)
+final_panel
 
 
   

@@ -1,3 +1,4 @@
+
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 # Note: this script really only needs to be run when updating the master
 # shapefile that has the invaded counties/county-equivalents in the US
@@ -163,7 +164,7 @@ sum(table(combined_sf_matched_CAN$BLD_Year)) == sum(table(BLD_CAN_only$CDUID))
 
 
 
-       
+
 
 # Combine and save shapefiles --------------------------------------------------
 #
@@ -185,10 +186,10 @@ sum(table(USCAN_albers$BLD_Year)) == nrow(BLD_US_only)+nrow(BLD_CAN_only)
 
 # Shorten column names and export shapefile
 USCAN_albers_export <- USCAN_albers %>% dplyr::select(FIPS=full_fips, 
-                                                 BLD_YR=BLD_Year, 
-                                                 ST_PR=State_province, 
-                                                 CTY=County, 
-                                                 geometry)
+                                                      BLD_YR=BLD_Year, 
+                                                      ST_PR=State_province, 
+                                                      CTY=County, 
+                                                      geometry)
 
 
 #plot(st_geometry(USCAN_albers))
