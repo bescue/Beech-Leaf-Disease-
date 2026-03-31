@@ -201,7 +201,7 @@ st_write(USCAN_albers_export, "gis_data/invasion_data_USCAN/USCAN_albers.shp", d
 
 
 
-# Aggregate raster of beech distributions --------------------------------------------------
+# Aggregate raster of beech distribution --------------------------------------------------
 #
 #
 #---
