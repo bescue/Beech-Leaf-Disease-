@@ -990,7 +990,7 @@ final_panel <- (fig_ERR_SEGMENT_fixed | fig_DR_fixed) /
   plot_annotation(tag_levels = "A") & 
   theme(plot.tag = element_text(size = 14, face = "bold"))
 
-# Display
+# Display graph
 resize.win(10, 10)
 final_panel
 
