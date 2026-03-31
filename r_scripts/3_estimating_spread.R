@@ -90,7 +90,7 @@ if(FALSE){
   # counties invaded in the first year would
   # be definition be isolated
   # i <- 2013
-  for(i in 2013:2024){
+  for(i in 2013:2025){
     
     # current invaded counties in time i
     invaded_in_i <- invaded_counties_all[which(invaded_counties_all$BLD_YR %in% i),]
@@ -145,7 +145,7 @@ if(FALSE){
       }
     }
     
-    cat("Year", i,"out of", 2024,"\n") 
+    cat("Year", i,"out of", 2025,"\n") 
   }
   
   
@@ -485,7 +485,7 @@ final_panel
 contigUSCAN_ALBERS_BLD$county_area <- st_area(contigUSCAN_ALBERS_BLD)
 
 # create a data frame to be populated with year and area invaded 
-annual_sprd <- data.frame(year=2012:2024, area_invaded_km2=NA)
+annual_sprd <- data.frame(year=2012:2026, area_invaded_km2=NA)
 years.to.plot <- sort(unique(contigUSCAN_ALBERS_BLD$BLD_YR))
 i <- years.to.plot[1]
 # for loop that populates the annual_sprd data frame
@@ -552,7 +552,7 @@ fig_ERR <- ggplot(data=annual_sprd, aes(x=year, y=radius)) +
   ylab("Radius of invaded area (km)")+
   xlab("Year")+ theme_bw()+
   
-  scale_x_continuous(breaks = seq(2012,2024,2), limits=c(2012,2025), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(2012,2026,2), limits=c(2012,2026), expand = c(0,0)) +
   scale_y_continuous(breaks = seq(0,500,100), limits=c(0,500), expand = c(0,0)) +
   
   geom_point(aes(x = (year), y = radius), col=color_dots, size=3)+
@@ -570,7 +570,7 @@ fig_ERR_SEGMENT <- ggplot(data=annual_sprd, aes(x=year, y=radius)) +
   ylab("Radius of invaded area (km)")+
   xlab("Year")+ theme_bw()+
   
-  scale_x_continuous(breaks = seq(2012,2024,2), limits=c(2012,2025), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(2012,2025,2), limits=c(2012,2026), expand = c(0,0)) +
   scale_y_continuous(breaks = seq(0,500,100), limits=c(0,500), expand = c(0,0)) +
   
   geom_point(aes(x = (year), y = radius), col=seg_pt_col, size=3)+
@@ -639,9 +639,9 @@ fig_DR <- ggplot(data=sprd_df, aes(x=BLD_YR, y=D_BDY_km)) +
   #geom_point(aes(x = BLD_YR, y = DtoDL_km), col=DR_col, size=2)+
   geom_jitter(aes(x = BLD_YR, y = DtoDL_km), position = position_jitter(width = 0.1, height = 0), alpha = 0.7, color=DR_col) +
   
-  stat_smooth(data = sprd_df, fullrange=T, method = "lm", col = "black", se=F,  xseq = seq(2013,2024.5, length=100))+
+  stat_smooth(data = sprd_df, fullrange=T, method = "lm", col = "black", se=F,  xseq = seq(2013,2025.5, length=100))+
   
-  scale_x_continuous(breaks = seq(2013,2025,2), limits=c(2012.8,2025.5), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(2013,2026,2), limits=c(2012.8,2026.5), expand = c(0,0)) +
   scale_y_continuous(breaks = seq(0,1200,300), limits=c(0,1200), expand = c(0,0)) +
   
   #geom_text(x = 2005, y = 1200, label = expression("Spread = 43 ± 4 km/yr (95% CI: 35-51)"), size=6,check_overlap = TRUE, hjust = 0)+
@@ -691,7 +691,7 @@ st_wedges <- function(x, y, r, nsegs){
 
 # wedge creation
 # set up the data frame, first with years of the study
-sprd_rad <- data.frame(year=2012:2024)
+sprd_rad <- data.frame(year=2012:2025)
 # set the radii size
 radii_n <- seq(0,360-22.5,22.5) # emanating every 22.5°
 # create a data frame to populated (spread per year per radii)
@@ -786,7 +786,7 @@ for(r in 1:nrow(int_all)){
   if(FIPS_INV_FAR == FIPS_FAR){ # if the farthest county in a wedge is invaded, find the year in which that happened
     wedge_id[r,"year"] <- max_val_invaded_cty$BLD_YR 
   } else{
-    wedge_id[r,"year"] <- 2024
+    wedge_id[r,"year"] <- 2025
   }
 }
 
